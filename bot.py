@@ -39,7 +39,7 @@ def fetch_and_convert_data(pair, window, threshold):
     um_futures_client = UMFutures()
     kline_datas = um_futures_client.klines(pair, window)
 
-    lastest_5m_kline = convert_data_by_start(kline_datas, len(kline_datas) -1 , len(kline_datas))
+    lastest_5m_kline = convert_data_by_start(kline_datas, len(kline_datas) -1, len(kline_datas))
 
     if float(lastest_5m_kline[-1]["Volume"]) >= threshold : 
         LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
@@ -51,7 +51,7 @@ def fetch_and_convert_data(pair, window, threshold):
         print(lastest_5m_kline)
   
 
-schedule.every(1).seconds.do(fetch_and_convert_data,pair="ETHUSDT", window="5m", threshold= 40000)
+schedule.every(1).seconds.do(fetch_and_convert_data, pair="ETHUSDT", window="5m", threshold= 40000)
 
 while True:
     schedule.run_pending()
