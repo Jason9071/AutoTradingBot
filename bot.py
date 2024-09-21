@@ -8,7 +8,7 @@ from binance.um_futures import UMFutures # type: ignore
 from binance.lib.utils import config_logging # type: ignore
 from datetime import datetime, timezone, timedelta
 
-def fetch_and_convert_data(pair, window):
+def fetch_and_convert_data(pair, window, threshold):
     print(f"Task running at {datetime.now()}")
     keys = [
         "Open time",          # Open time
@@ -36,7 +36,7 @@ def fetch_and_convert_data(pair, window):
         row_dict["Close time"] = datetime.fromtimestamp(row_dict["Close time"] / 1000, timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
         converted_data.append(row_dict)
 
-    if float(converted_data[-1]["Volume"]) >= 40000 : 
+    if float(converted_data[-1]["Volume"]) >= threshold : 
         LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
         notify = LineNotify(LINE_ACCESS_TOKEN)
         mseeage = "\n【爆量通知】 \n" + converted_data[-1]["Open time"] + "\n" + "ETH/USDT Perp 5min volume is over 40k\n"
@@ -46,8 +46,8 @@ def fetch_and_convert_data(pair, window):
         print(converted_data[-1])
   
 
-schedule.every(1).seconds.do(fetch_and_convert_data,pair="ETHUSDT", window="5m")
-while True:
+schedule.every(1).seconds.do(fetch_and_convert_data,pair="ETHUSDT", window="5m", threshold= 40000)
 
+while True:
     schedule.run_pending()
     time.sleep(1)
