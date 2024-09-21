@@ -8,7 +8,7 @@ from binance.um_futures import UMFutures # type: ignore
 from binance.lib.utils import config_logging # type: ignore
 from datetime import datetime, timezone, timedelta
 
-def fetch_and_convert_data():
+def fetch_and_convert_data(pair, window):
     print(f"Task running at {datetime.now()}")
     keys = [
         "Open time",          # Open time
@@ -26,7 +26,7 @@ def fetch_and_convert_data():
     ]
 
     um_futures_client = UMFutures()
-    kline_data = um_futures_client.klines("ETHUSDT", "5m")
+    kline_data = um_futures_client.klines(pair, window)
 
     converted_data = []
 
@@ -46,7 +46,7 @@ def fetch_and_convert_data():
         print(converted_data[-1])
   
 
-schedule.every(1).seconds.do(fetch_and_convert_data)
+schedule.every(1).seconds.do(fetch_and_convert_data,pair="ETHUSDT", window="5m")
 while True:
 
     schedule.run_pending()
