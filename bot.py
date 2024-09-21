@@ -8,8 +8,7 @@ from binance.um_futures import UMFutures # type: ignore
 from binance.lib.utils import config_logging # type: ignore
 from datetime import datetime, timezone, timedelta
 
-def fetch_and_convert_data(pair, window, threshold):
-    print(f"Task running at {datetime.now()}")
+def convert_data_by_start(data, start, end):
     keys = [
         "Open time",          # Open time
         "Open price",               # Open price
@@ -24,26 +23,32 @@ def fetch_and_convert_data(pair, window, threshold):
         "Taker buy quote asset volume", # Taker buy quote asset volume
         "Ignore"              # Ignore this field
     ]
-
-    um_futures_client = UMFutures()
-    kline_data = um_futures_client.klines(pair, window)
-
     converted_data = []
-
-    for row in kline_data:
-        row_dict = dict(zip(keys, row))
+    currend = start
+    while currend < end :
+        row_dict = dict(zip(keys, data[currend]))
         row_dict["Open time"] = datetime.fromtimestamp(row_dict["Open time"] / 1000, timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
         row_dict["Close time"] = datetime.fromtimestamp(row_dict["Close time"] / 1000, timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
         converted_data.append(row_dict)
+        currend += 1
+    return converted_data
 
-    if float(converted_data[-1]["Volume"]) >= threshold : 
+def fetch_and_convert_data(pair, window, threshold):
+    print(f"Task running at {datetime.now()}")
+    
+    um_futures_client = UMFutures()
+    kline_datas = um_futures_client.klines(pair, window)
+
+    lastest_5m_kline = convert_data_by_start(kline_datas, len(kline_datas) -1 , len(kline_datas))
+
+    if float(lastest_5m_kline[-1]["Volume"]) >= threshold : 
         LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
         notify = LineNotify(LINE_ACCESS_TOKEN)
-        mseeage = "\n【爆量通知】 \n" + converted_data[-1]["Open time"] + "\n" + "ETH/USDT Perp 5min volume is over 40k\n"
+        mseeage = "\n【爆量通知】 \n" + lastest_5m_kline[-1]["Open time"] + "\n" + "ETH/USDT Perp 5min volume is over 40k\n"
         notify.send(mseeage)
     else :
-        mseeage = "\n【爆量通知】 \n" + converted_data[-1]["Open time"] + "\n" + "ETH/USDT Perp 5min volume is over 40k\n"
-        print(converted_data[-1])
+        mseeage = "\n【爆量通知】 \n" + lastest_5m_kline[-1]["Open time"] + "\n" + "ETH/USDT Perp 5min volume is over 40k\n"
+        print(lastest_5m_kline)
   
 
 schedule.every(1).seconds.do(fetch_and_convert_data,pair="ETHUSDT", window="5m", threshold= 40000)
