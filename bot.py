@@ -7,6 +7,32 @@ import schedule # type: ignore
 from binance.um_futures import UMFutures # type: ignore
 from binance.lib.utils import config_logging # type: ignore
 from datetime import datetime, timezone, timedelta
+import json
+
+def send_message_on_line_notify(new_data):
+
+    file_path = 'data.json'
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    open_time_exists = any(item["Open time"] == new_data["Open time"] for item in data)
+
+    if open_time_exists:
+        print(f"已存在相同的 Open time: {new_data['Open time']}")
+    else:
+        data.append(new_data)
+        
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
+        print(f"新的數據已成功寫入，Open time: {new_data['Open time']}")
+
+
+        LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
+        notify = LineNotify(LINE_ACCESS_TOKEN)
+        mseeage = "\n【爆量通知】 \n" + new_data["Open time"] + "\n" + "ETH/USDT Perp 5min volume is over 40k\n"
+        notify.send(mseeage)
 
 def convert_data_by_start(data, start, end):
     keys = [
@@ -39,15 +65,11 @@ def fetch_and_convert_data(pair, window, threshold):
     um_futures_client = UMFutures()
     kline_datas = um_futures_client.klines(pair, window)
 
-    lastest_5m_kline = convert_data_by_start(kline_datas, len(kline_datas) -1, len(kline_datas))
+    lastest_5m_kline = convert_data_by_start(kline_datas, len(kline_datas) -1, len(kline_datas))[-1]
 
-    if float(lastest_5m_kline[-1]["Volume"]) >= threshold : 
-        LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
-        notify = LineNotify(LINE_ACCESS_TOKEN)
-        mseeage = "\n【爆量通知】 \n" + lastest_5m_kline[-1]["Open time"] + "\n" + "ETH/USDT Perp 5min volume is over 40k\n"
-        notify.send(mseeage)
+    if float(lastest_5m_kline["Volume"]) >= threshold : 
+        send_message_on_line_notify(lastest_5m_kline)
     else :
-        mseeage = "\n【爆量通知】 \n" + lastest_5m_kline[-1]["Open time"] + "\n" + "ETH/USDT Perp 5min volume is over 40k\n"
         print(lastest_5m_kline)
   
 
